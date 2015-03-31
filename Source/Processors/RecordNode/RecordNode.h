@@ -32,6 +32,9 @@
 #include "../Channel/Channel.h"
 
 
+// DDC added
+#define NEW_FILE_INTERVAL 1000*60*5  // every 5min
+
 #define HEADER_SIZE 1024
 #define BLOCK_LENGTH 1024
 
@@ -244,7 +247,8 @@ private:
     /**RecordEngines loaded**/
     OwnedArray<RecordEngine> engineArray;
 
-
+    uint64 directoryCreateTimeMS, lastFileResetTimeMS;
+    
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(RecordNode);
 
 };

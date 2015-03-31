@@ -208,7 +208,9 @@ void RecordNode::createNewDirectory()
 String RecordNode::generateDirectoryName()
 {
     Time calendar = Time::getCurrentTime();
-
+    directoryCreateTimeMS = calendar.toMilliseconds();
+    lastFileResetTimeMS = 0;
+    
     Array<int> t;
     t.add(calendar.getYear());
     t.add(calendar.getMonth()+1); // January = 0
@@ -432,12 +434,36 @@ void RecordNode::handleEvent(int eventType, MidiMessage& event, int samplePositi
 void RecordNode::process(AudioSampleBuffer& buffer,
                          MidiBuffer& events)
 {
+    uint64 nowMS = Time::getCurrentTime().toMilliseconds();
+    if(lastFileResetTimeMS == 0) lastFileResetTimeMS = nowMS;
+    
+    
+    // Check to see if we should start new files
+    if (isRecording && allFilesOpened){
+        
+        if((nowMS - lastFileResetTimeMS) > NEW_FILE_INTERVAL){
+            // close the old file and start a new one
+            
+            
+            // this is possibly hacky
+            closeAllFiles();
+            experimentNumber++;
+            EVERY_ENGINE->openFiles(rootFolder, experimentNumber, recordingNumber);
+            allFilesOpened = true;
+            
+            lastFileResetTimeMS = nowMS;
+        }
+    }
+    
+    
     // FIRST: cycle through events -- extract the TTLs and the timestamps
     checkForEvents(events);
 
     //update timstamp data even if we're not recording yet
     EVERY_ENGINE->updateTimestamps(&timestamps);
     EVERY_ENGINE->updateNumSamples(&numSamples);
+
+    
 
     if (isRecording && allFilesOpened)
     {
@@ -446,8 +472,6 @@ void RecordNode::process(AudioSampleBuffer& buffer,
         {
             EVERY_ENGINE->writeData(buffer);
         }
-
-        //  std::cout << nSamples << " " << samplesWritten << " " << blockIndex << std::endl;
 
         return;
 
